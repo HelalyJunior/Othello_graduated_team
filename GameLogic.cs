@@ -168,7 +168,166 @@ public class GameLogic
         return new List<Position>(); //empty
     }
 
+    /*
+        it returns the outflanked positions in all eight directions , 
+        it basically loops over the eight directions and call getOutFlankedByDirection()
+    */
+    private List<Position> getOutFlanked(PlayerColor player , Position position)
+    {
+        List<Position> outFlanked = new List<Position>();
+
+        Direction[] directions = new Direction[]
+        {
+            Direction.UP,
+            Direction.DOWN,
+            Direction.LEFT,
+            Direction.RIGHT,
+            Direction.DIAGONALRIGHTUP,
+            Direction.DIAGONALRIGHTDOWN,
+            Direction.DIAGONALLEFTUP,
+            Direction.DIAGONALLEFTDOWN
+        };
+        foreach (Direction direction in directions)
+        {
+           outFlanked.AddRange(getOutFlankedByDirection(player,position,direction));
+        }
+        return outFlanked;
+    }
+
+    /*
+        it returns a dictionary where each key is a legal position and the value is the list
+        of the outflanked positions
+    */
+    private Dictionary<Position,List<Position>> getLegalMoves(PlayerColor player)
+    {
+        Dictionary<Position,List<Position>> legalMovesDict = new Dictionary<Position,List<Position>>();
+        for(int i=0;i<8;i++)
+        {
+            for(int j=0; j<8; j++)
+            {
+                Position position = new Position(i,j);
+                if(isMoveLegal(position,player,out List<Position> outFlanked))
+                {
+                    legalMovesDict[position] = outFlanked;
+                }
+            }
+        }
+        return legalMovesDict;
+    }
+
+    /*
+        for a move to be legal , it needs to be an empty tile and needs to outflank atleast one tile
+    */
+    private bool isMoveLegal(Position position , PlayerColor player , out List<Position> outFlanked)
+    {
+        if(currentState[position.row,position.column]==PlayerColor.NULL)
+        {
+            outFlanked=getOutFlanked(player,position);
+            return outFlanked.Count>0;
+        }
+        else
+        {
+            outFlanked=null;
+            return false;
+        }
+    }
+
+    /*
+        a utility function used to get the occupied positons (the not NULL positions)
+    */
+    public List<Position> getOccupiedPositions()
+    {
+        List<Position> occupiedPositions = new List<Position>();
+        for(int row=0; row<8;row++)
+        {
+            for (int col=0;col<8;col++)
+                {
+                    if(currentState[row,col]!=PlayerColor.NULL)
+                    {
+                        occupiedPositions.Add(new Position(row,col));
+                    }
+                }
+        }
+        return occupiedPositions;
+    }
+
+    /*
+        a function called at the start to fill the initial state
+    */
+    private void fillStartingState()
+    {
+        currentState[3,3]=PlayerColor.WHITE;
+        currentState[4,4]=PlayerColor.WHITE;
+        currentState[3,4]=PlayerColor.BLACK;
+        currentState[4,3]=PlayerColor.BLACK;
+    }
+
+    /*
+        the scoring starts at 2 for each player
+    */
+    private void startScoring()
+    {
+        score = new Dictionary<PlayerColor, int>()
+        {
+            {PlayerColor.BLACK,2},
+            {PlayerColor.WHITE,2}
+        };
+    }
+
+    /*
+        returns true if a move is ok and flase if not 
+        if true the move is taken
+    */
+    public bool canTakeMove(Position boardPosition , out Move move)
+    {
+        if(legalMoves.ContainsKey(boardPosition))
+        {
+            move = new Move(currentPlayer,legalMoves[boardPosition],boardPosition);
+            takeMove(move);
+            return true;
+        }
+        move=null;
+        return false;
+    }
+
+    /*
+        the game changer
+        the funciton starts with updating the scores and then changing the currentState with the new state
+        and then change turns
+    */
+    private void takeMove(Move move)
+    {
+
+        /*
+            Update The Score
+        */
+
+        updateScore(move);
+
+        /*
+            Add The disc
+        */
+        currentState[move.destination.row,move.destination.column]=currentPlayer;
+
+        /*
+            Flip discs
+        */
+        foreach( Position pos in move.outFlanked)
+        {
+            currentState[pos.row,pos.column]=currentPlayer;
+        }
+
+        /*
+            change turns
+        */
+        changeTurns();
+
+    }
     public GameLogic()
     {
+        fillStartingState();
+        startScoring();
+        currentPlayer = PlayerColor.BLACK;
+        legalMoves = getLegalMoves(currentPlayer);
     }
 }
