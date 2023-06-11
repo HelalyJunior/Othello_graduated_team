@@ -7,6 +7,37 @@ public class Ai
     int depth;
     PlayerColor player;
 
+    public Node generateTree(PlayerColor[,] state)
+    {
+        return generateGameTree(state,player,depth,new Node(state,player,new Move()));
+    }
+
+    private Node generateGameTree(PlayerColor[,] state, PlayerColor player, int depth,Node root)
+    {
+        if(depth==0 || GameLogic.isGameOverGivenState(state))
+        {
+            return new Node();
+        }
+        Dictionary<Position,List<Position>> legalPositions = GameLogic.getLegalMovesGivenState(state,player);
+        foreach(KeyValuePair<Position,List<Position>> legalPos in legalPositions)
+        {
+            Move move = new Move(player,legalPos.Value,legalPos.Key);
+            PlayerColor[,] childState = GameLogic.takeMoveGivenState(state
+            ,move,player,out PlayerColor turn);
+            Node child = new Node(childState,turn,move);
+            root.addChildren(child);
+            generateGameTree(childState,turn,depth-1,child);
+        }
+
+        return root;
+    }
+
+    public Ai(int depth , PlayerColor player)
+    {
+        this.depth=depth;
+        this.player = player;
+    }
+
     private int evaluateState(Node stateNode)
     {
         return 10*evaluateCoinParity(stateNode)+
@@ -80,6 +111,64 @@ public class Ai
 
         return 100* ((maxCount-minCount)/(maxCount+minCount));
     }
+
+    private float minMaxAlphaBetaPruning(Node gameTree , float alpha , float beta)
+    {
+        if(gameTree.getChildren().Count==0)
+        {
+            return evaluateState(gameTree);
+        }
+
+        if(gameTree.turn==player) //maximizer
+        {
+            float maxEvaluation= Mathf.NegativeInfinity;
+            foreach(Node child in gameTree.getChildren())
+            {
+                float evaluation = minMaxAlphaBetaPruning(child,alpha,beta);
+                child.evaluation = evaluation;
+                maxEvaluation=Mathf.Max(maxEvaluation,evaluation);
+                alpha = Mathf.Max(alpha,evaluation);
+                if(beta<=alpha)
+                {
+                    break;
+                }
+            }
+            return maxEvaluation;
+
+        }
+        else //minimizer
+        {
+            float minEvaluation=Mathf.Infinity;
+            foreach(Node child in gameTree.getChildren())
+            {
+                float evaluation = minMaxAlphaBetaPruning(child,alpha,beta);
+                child.evaluation = evaluation;
+                minEvaluation=Mathf.Min(minEvaluation,evaluation);
+                beta = Mathf.Min(beta,evaluation);
+                if(beta<=alpha)
+                {
+                    break;
+                }
+            }
+            return minEvaluation;
+        }
+    }
+
+    public Move getBestMove(PlayerColor[,] state)
+    {
+        Node gameTree = generateTree(state);
+        float bestScore = minMaxAlphaBetaPruning(gameTree,Mathf.NegativeInfinity,Mathf.Infinity);
+        foreach(Node child in gameTree.getChildren())
+        {
+            if(child.evaluation==bestScore)
+            {
+                return child.move;
+            }
+        }
+        return new Move();
+    }
+
+
 
 
 }
