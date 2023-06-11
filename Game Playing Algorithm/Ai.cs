@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Ai
 {
-
+    int depth;
     PlayerColor player;
 
     private int evaluateState(Node stateNode)
