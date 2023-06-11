@@ -1,6 +1,9 @@
 # Othello Game
 This repository contains a classic implementation of the Othello game. Othello, also known as Reversi, is a two-player strategy board game played on an 8x8 grid. 
 The objective of the game is to have the majority of your colored discs on the board at the end of the game.
+## Information about the Project
+* The programming language used is C#.
+* The Algorithm used is MinMax algorithm with Alpha-Beta Pruning.
 ## Installation
 * Clone the repository to your local machine using git clone https://github.com/HelalyJunior/Othello_graduated_team.
 * Navigate to the project directory.
